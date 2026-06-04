@@ -4,7 +4,6 @@
   "description": "",
   "main": "server.js",
   "dependencies": {
-    "@hono/vercel-adapter": "^0.4.2",
     "@supabase/supabase-js": "^2.48.1",
     "hono": "^4.6.14"
   },
