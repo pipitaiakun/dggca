@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Chat</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://*.supabase.co https://openrouter.ai https://app.sandbox.midtrans.com https://*.vercel.app https://www.google.com; connect-src 'self' https://*.supabase.co https://api.tavily.com https://openrouter.ai https://app.sandbox.midtrans.com https://*.vercel.app https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; frame-src 'self' https://app.sandbox.midtrans.com;">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Vercel akan mengganti placeholder ini dengan Environment Variables -->
+    <script>
+        window.API_BASE_URL = "API_BASE_URL_PLACEHOLDER"; // Contoh: https://dggc-ai-api.username.workers.dev
+        window.MIDTRANS_CLIENT_KEY = "MIDTRANS_CLIENT_KEY_PLACEHOLDER"; // Contoh: SB-Mid-client-XXXXX
+        window.SUPABASE_ANON_KEY = "SUPABASE_ANON_KEY_PLACEHOLDER";
+    </script>
+    <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="MIDTRANS_CLIENT_KEY_PLACEHOLDER"></script>
+</head>
+<body>
+
+<div id="auth-overlay" class="auth-overlay" onclick="if(event.target === this) this.style.display='none'">
+    <div class="auth-card">
+        <div class="auth-tabs">
+            <button id="tab-login" class="auth-tab-btn active" onclick="showAuthForm('login')">Login</button>
+            <button id="tab-register" class="auth-tab-btn" onclick="showAuthForm('register')">Register</button>
+        </div>
+
+        <div id="login-form" class="auth-form active">
+            <h2>Login to DGGC AI</h2>
+            <button onclick="loginWithGoogle()" class="google-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-3.23 3.28-8.02 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                Continue with Google
+            </button>
+            <input type="email" id="login-email" placeholder="Email">
+            <input type="password" id="login-password" placeholder="Password">
+            <button onclick="handleAuth('login')" class="auth-submit-btn">Login</button>
+        </div>
+
+        <div id="register-form" class="auth-form">
+            <h2>Register for DGGC AI</h2>
+            <button onclick="loginWithGoogle()" class="google-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-3.23 3.28-8.02 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                Continue with Google
+            </button>
+            <input type="email" id="register-email" placeholder="Email">
+            <input type="password" id="register-password" placeholder="Password">
+            <input type="password" id="register-confirm-password" placeholder="Confirm Password">
+            <button onclick="handleAuth('register')" class="auth-submit-btn">Register</button>
+        </div>
+
+        <p id="auth-error" style="color: #ef4444; font-size: 12px; margin-top: 10px;"></p>
+    </div>
+</div>
+
+<button id="menu-btn" onclick="toggleSidebar()">☰</button>
+
+<div class="project-indicator" id="current-project">
+    <span>📁 General Workspace</span>
+</div>
+
+<div class="top-controls">
+    <select id="model-select" class="model-select">
+        <option value="deepseek/deepseek-chat">DeepSeek V3</option>
+        <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+        <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+        <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
+    </select>
+    <div class="thinking-mode">
+        <input type="checkbox" id="reasoning-mode" class="toggle-checkbox" onchange="if(this.checked) document.getElementById('model-select').value='deepseek/deepseek-r1'">
+        <label for="reasoning-mode" class="toggle-label">
+            <span class="toggle-slider"></span>
+        </label>
+        <span class="thinking-mode-text">🧠 Reasoning</span>
+    </div>
+    <button id="theme-toggle" onclick="toggleTheme()">🌙</button>
+</div>
+
+<div id="auth-nav" class="auth-nav" style="display: none;">
+    <span onclick="showAuthForm('register'); document.getElementById('auth-overlay').style.display='flex'" class="auth-nav-link">Register</span>
+    <button onclick="showAuthForm('login'); document.getElementById('auth-overlay').style.display='flex'" class="auth-nav-btn">Login</button>
+</div>
+
+<button id="new-chat-top" onclick="newChat()" title="Chat Baru">✎</button>
+
+<div id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+        <div class="header-actions">
+            <button onclick="newChat()" class="new-chat-btn">✎ New Chat</button>
+            <button onclick="createNewFolder()" class="icon-action-btn" title="New Folder">📁</button>
+        </div>
+        <input type="text" id="search-chat" placeholder="🔍 Cari chat..." oninput="renderHistory()">
+    </div>
+    <div id="history-list" class="history-list"></div>
+    
+    <div class="sidebar-footer">
+        <div class="footer-item" onclick="openSettings()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zm7.43-2.53l1.86-1.41a.5.5 0 00.12-.63l-2.05-3.55a.5.5 0 00-.59-.22l-2.18.88c-.46-.35-.95-.65-1.48-.89l-.33-2.31a.5.5 0 00-.5-.43h-4.1a.5.5 0 00-.5.43l-.33 2.31c-.52.24-1.01.54-1.48.89l-2.18-.88a.5.5 0 00-.59.22L3.1 8.93a.5.5 0 00.12.63l1.86 1.41c-.02.16-.03.32-.03.49s.01.33.03.49l-1.86 1.41a.5.5 0 00-.12.63l2.05 3.55c.12.2.36.29.59.22l2.18-.88c.46.35.95.65 1.48.89l.33 2.31c.04.25.26.43.5.43h4.1c.24 0 .46-.18.5-.43l.33-2.31c.52-.24 1.01-.54 1.48-.89l2.18.88a.5.5 0 00.59-.22l2.05-3.55a.5.5 0 00-.12-.63l-1.86-1.41c.02-.16.03-.32.03-.49s-.01-.33-.03-.49z"/></svg>
+            <span>Settings</span>
+        </div>
+        
+        <div class="footer-item" onclick="exportToPDF()">
+            <span>📄 Export PDF</span>
+        </div>
+
+        <div class="footer-item user-info">
+            <div id="user-avatar" class="user-avatar">?</div>
+            <div class="user-details">
+                <span id="user-email" class="user-email">Loading...</span>
+            </div>
+        </div>
+        
+        <div class="footer-item logout-btn" onclick="handleLogout()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 13v-2H7V8l-5 4 5 4v-3h9zM20 3H9c-1.1 0-2 .9-2 2v4h2V5h11v14H9v-4H7v4c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+            <span>Logout</span>
+        </div>
+    </div>
+</div>
+<div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+
+<div id="main-content">
+<div class="welcome" id="welcome">
+    <h1>DGGC AI</h1>
+    <p>ada yang bisa di bantu hari ini?</p>
+</div>
+
+<div class="chat-box" id="chat"></div>
+</div>
+
+<div id="preview-container" class="preview-container">
+    <div class="preview-header">Preview <button onclick="closePreview()">✕</button></div>
+    <iframe id="preview-frame"></iframe>
+</div>
+
+<div id="context-menu" class="context-menu">
+    <div class="context-menu-item" onclick="deleteChatFromMenu()">
+        <span>🗑️</span> Delete
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-overlay" class="auth-overlay" style="display: none; z-index: 3000;">
+    <div class="settings-card">
+        <div class="settings-sidebar">
+            <h3 style="margin-bottom:20px; font-weight:700;">Pengaturan</h3>
+            <div class="settings-tabs-nav">
+                <div class="settings-tab-link active" onclick="switchSettingsTab(this, 'account')">👤 Akun</div>
+                <div class="settings-tab-link" onclick="switchSettingsTab(this, 'ai')">🤖 AI & Memori</div>
+                <div class="settings-tab-link" onclick="switchSettingsTab(this, 'appearance')">🎨 Tampilan</div>
+                <div class="settings-tab-link" onclick="switchSettingsTab(this, 'billing')">💎 Langganan</div>
+                <div id="set-tab-developer" class="settings-tab-link" onclick="switchSettingsTab(this, 'developer')">🧪 Developer (🪙 0)</div>
+                <div class="settings-tab-link settings-tab-about" onclick="switchSettingsTab(this, 'about')">ℹ️ Tentang</div>
+            </div>
+            <button class="settings-close-btn" onclick="closeSettings()">Selesai</button>
+        </div>
+        <button onclick="closeSettings()" style="position:absolute; top:20px; right:20px; background:none; border:none; color:var(--text); font-size:20px; cursor:pointer; opacity:0.5; z-index:10;">✕</button>
+        <div class="settings-main">
+            <!-- Account Section -->
+            <div id="set-panel-account" class="settings-panel active">
+                <h2>👤 Account</h2>
+
+                <!-- Dashboard Penggunaan (Sekarang bisa dilihat semua user) -->
+                <div class="usage-dashboard" style="margin-bottom: 20px;">
+                    <div class="usage-title">Limit Harian <span id="plan-badge" class="plan-badge plan-free">FREE</span></div>
+                    <div class="usage-compact" style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span>🚀 <span id="user-plan-name">Free Plan</span></span>
+                        <b><span id="daily-used">0</span> / <span id="daily-limit">9,000</span></b>
+                    </div>
+                    <div class="usage-bar-bg">
+                        <div id="usage-bar-fill" class="usage-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="set-group">
+                    <div class="user-profile-large">
+                        <div id="set-avatar" class="user-avatar">?</div>
+                        <div class="user-info-text">
+                            <b id="set-display-name" style="font-size: 20px; display: block; margin-bottom: 4px;">User Profile</b>
+                            <p id="set-email" style="font-size: 14px; opacity: 0.6;">email@example.com</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                        <div>
+                            <small style="opacity: 0.5; font-size: 10px; display: block; text-transform: uppercase;">Total Chat</small>
+                            <b id="set-total-chats" style="font-size: 16px;">0</b>
+                        </div>
+                        <div>
+                            <small style="opacity: 0.5; font-size: 10px; display: block; text-transform: uppercase;">Token Sesi</small>
+                            <b id="set-total-tokens" style="font-size: 16px;">0</b>
+                        </div>
+                        <div>
+                            <small style="opacity: 0.5; font-size: 10px; display: block; text-transform: uppercase;">Est. Biaya</small>
+                            <b id="set-total-cost" style="font-size: 16px;">$0.00</b>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px;">
+                        <button class="export-btn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none;" onclick="handleLogout()">Logout</button>
+                        <button class="export-btn" style="background: transparent; color: #6b7280; border: 1px solid var(--border);">Hapus Akun</button>
+                    </div>
+                </div>
+
+                <!-- Grafik Penggunaan di Akun -->
+                <div class="set-group">
+                    <label>📈 Aktivitas Penggunaan (7 Hari Terakhir)</label>
+                    <div style="height: 140px; margin-top: 10px;">
+                        <canvas id="accountUsageChart"></canvas>
+                    </div>
+                    <button class="export-btn" style="margin-top: 15px; width: 100%; border-style: dashed;" onclick="showUsageDetail()">
+                        🔍 Lihat Rincian per Model
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Detail Penggunaan (Popup) -->
+            <div id="usage-detail-modal" class="auth-overlay" style="z-index: 4000; background: rgba(0,0,0,0.7);">
+                <div class="auth-card" style="max-width: 450px; border: 1px solid var(--border);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h3 style="margin:0;">📊 Rincian Penggunaan</h3>
+                        <button onclick="closeUsageDetail()" style="background:none; border:none; color:var(--text); font-size:20px; cursor:pointer; opacity:0.5;">✕</button>
+                    </div>
+                    <div id="model-detail-list" style="display:flex; flex-direction:column; gap:12px; max-height:400px; overflow-y:auto; padding-right:5px;">
+                        <!-- Items will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billing Section -->
+            <div id="set-panel-billing" class="settings-panel">
+                <h2>💎 Upgrade Plan</h2>
+                <div class="button-group" style="flex-direction: column; gap: 15px;">
+                    <div class="set-group" style="width: 100%;">
+                        <b>Premium Plan (20.000 Token)</b><br><small>Rp 30.000 / bln</small>
+                        <button class="export-btn" style="margin-top:10px; background: #f59e0b; color: white;" onclick="buyPlan('premium')">Beli Premium</button>
+                    </div>
+                    <div class="set-group" style="width: 100%;">
+                        <b>Super Premium (99.000 Token)</b><br><small>Rp 99.000 / bln</small>
+                        <button class="export-btn" style="margin-top:10px; background: #8b5cf6; color: white;" onclick="buyPlan('super')">Beli Super Premium</button>
+                    </div>
+                    <div class="set-group" style="width: 100%;">
+                        <b>Galaxy Plan (900.000 Token)</b><br><small>Rp 2.000.000 / bln</small>
+                        <button class="export-btn" style="margin-top:10px; background: linear-gradient(45deg, #3b82f6, #ec4899); color: white;" onclick="buyPlan('galaxy')">Beli Galaxy</button>
+                    </div>
+                </div>
+                <hr style="margin: 20px 0; opacity: 0.1;">
+                <div class="set-group">
+                    <label>🎁 Punya Kode Promo?</label>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <input type="text" id="promo-code-input" placeholder="Masukkan kode di sini..." style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                        <button class="export-btn" style="width: auto; margin-top: 0;" onclick="claimPromoCode()">Redeem</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Settings Section -->
+            <div id="set-panel-ai" class="settings-panel">
+                <h2>🤖 AI Settings</h2>
+                <div class="set-group">
+                    <label>Model Default</label>
+                    <select class="model-select" style="width:100%; margin-top:5px;" onchange="document.getElementById('model-select').value = this.value">
+                        <option value="deepseek/deepseek-chat">DeepSeek V3</option>
+                        <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+                        <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                    </select>
+                </div>
+                <div class="set-group">
+                    <label>🧠 Memory Profile (AI Memory)</label>
+                    <textarea id="user-memory" placeholder="Contoh: Nama saya Azzam..." onblur="saveMemory()" style="width:100%; height:100px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:10px; color:var(--text); font-size:14px;"></textarea>
+                </div>
+                <div class="set-group" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Thinking Mode</span>
+                    <input type="checkbox" id="set-reasoning" onchange="document.getElementById('reasoning-mode').checked = this.checked">
+                </div>
+                <div class="set-group">
+                    <label>Temperature (Creativity)</label>
+                    <input type="range" min="0" max="1" step="0.1" value="0.7" style="width:100%;">
+                </div>
+            </div>
+
+            <!-- Appearance Section -->
+            <div id="set-panel-appearance" class="settings-panel">
+                <h2>🎨 Appearance</h2>
+                <div class="set-group">
+                    <label>Theme</label>
+                    <div class="button-group">
+                        <button class="export-btn" onclick="toggleTheme(false, 'light')">☀️ Light</button>
+                        <button class="export-btn" onclick="toggleTheme(false, 'dark')">🌙 Dark</button>
+                    </div>
+                </div>
+                <div class="set-group">
+                    <label>Font Size</label>
+                    <div class="button-group">
+                        <button class="export-btn" onclick="changeFontSize('small')">Kecil</button>
+                        <button class="export-btn" onclick="changeFontSize('medium')">Sedang</button>
+                        <button class="export-btn" onclick="changeFontSize('large')">Besar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Developer & Usage Section -->
+            <div id="set-panel-developer" class="settings-panel">
+                <h2>🧪 Developer & Usage</h2>
+
+                <div class="set-group">
+                    <label>Grafik Penggunaan Sesi</label>
+                    <div style="height: 150px; margin-bottom: 20px;">
+                        <canvas id="usageChart"></canvas>
+                    </div>
+                    <div class="usage-grid" style="display:flex; justify-content:space-between;">
+                        <div class="usage-item"><span>Input</span><b id="usage-input">0</b></div>
+                        <div class="usage-item"><span>Output</span><b id="usage-output">0</b></div>
+                        <div class="usage-item"><span>Cost</span><b id="usage-cost">$0.00</b></div>
+                    </div>
+                </div>
+
+                <div class="set-group" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Reset Status Plan</span>
+                    <button class="export-btn" style="width: auto; padding: 5px 12px; font-size: 11px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none;" onclick="resetPlan()">Reset ke Free</button>
+                </div>
+                <div class="set-group" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Show Token Usage</span>
+                    <input type="checkbox" checked>
+                </div>
+                <div class="set-group" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Debug Mode</span>
+                    <input type="checkbox">
+                </div>
+                <div class="set-group">
+                    <label>API Status</label>
+                    <p style="color:#16a34a; font-size:14px; margin-top:5px;">● All Systems Operational</p>
+                </div>
+            </div>
+
+            <!-- About Section -->
+            <div id="set-panel-about" class="settings-panel">
+                <h2>ℹ️ About</h2>
+                <div class="set-group">
+                    <p><b>DGGC AI v2.5.0-Pro</b></p>
+                    <p style="font-size:14px; opacity:0.7; margin-top:10px;">Aplikasi AI modern dengan dukungan multi-model dan integrasi Supabase.</p>
+                    <hr style="margin:15px 0; opacity:0.1;">
+                    <a href="#" style="color:#2563eb; text-decoration:none; display:block; margin-bottom:10px;">🌐 Official Website</a>
+                    <a href="#" style="color:#2563eb; text-decoration:none; display:block;">📦 GitHub Repository</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Pembayaran (Statis/Simulasi) -->
+<div id="payment-overlay" class="auth-overlay" style="display: none; z-index: 5000; background: rgba(0,0,0,0.8);">
+    <div class="auth-card" style="max-width: 400px; text-align: center; border: 1px solid var(--border);">
+        <h3 id="payment-title">💳 Konfirmasi Pembayaran</h3>
+        <p style="font-size: 13px; opacity: 0.7; margin-bottom: 20px;">Silakan selesaikan pembayaran untuk mengaktifkan paket.</p>
+        
+        <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align: left; border: 1px solid var(--border);">
+            <p style="margin: 5px 0;">Paket: <b id="pay-plan-name" style="color: #3b82f6;">-</b></p>
+            <p style="margin: 5px 0;">Total Bayar: <b id="pay-amount" style="color: #16a34a;">-</b></p>
+            <hr style="margin: 10px 0; opacity: 0.1;">
+            <p style="font-size: 12px; margin: 3px 0;">🏦 <b>Transfer Bank (BCA)</b>: 123-456-7890</p>
+            <p style="font-size: 12px; margin: 3px 0;">👤 <b>A/N</b>: DGGC AI PRODUCTION</p>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <div style="width: 160px; height: 160px; background: white; margin: 0 auto; padding: 10px; border-radius: 10px;">
+                <!-- Placeholder QRIS -->
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=DGGC-AI-PAYMENT" alt="QRIS" style="width: 140px; height: 140px;">
+            </div>
+            <small style="display: block; margin-top: 10px; opacity: 0.5;">Scan QRIS untuk pembayaran instan</small>
+        </div>
+
+        <button id="pay-confirm-btn" class="auth-submit-btn" onclick="confirmPayment()">Saya Sudah Bayar</button>
+        <button class="export-btn" style="margin-top: 10px; border: none; background: transparent;" onclick="document.getElementById('payment-overlay').style.display='none'">Batal</button>
+    </div>
+</div>
+
+<div class="input-box">
+    <div id="file-preview-container" class="file-preview-container"></div>
+    <div class="input-row">
+        <input type="file" id="image-input" hidden accept=".pdf,.txt,.csv,.js,.html,.css,image/*" multiple onchange="handleFileSelect(this)">
+        <div class="attach-wrapper">
+            <button class="attach-btn" onclick="toggleAttachMenu(event)">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>
+            </button>
+            <div id="attach-menu" class="attach-menu">
+                <div class="attach-menu-item" onclick="triggerFileSelect('image/*')"><span>🖼️</span> Gambar</div>
+                <div class="attach-menu-item" onclick="triggerFileSelect('.pdf,.txt,.csv,.js,.html,.css')"><span>📄</span> Dokumen</div>
+            </div>
+        </div>
+        <button class="mic-btn" onclick="startVoice()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        </button>
+        <textarea id="msg" placeholder="Tulis pesan..." rows="1"></textarea>
+        <button id="send-btn" onclick="send()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+        </button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/highlight.js/styles/github-dark.min.css">
+
+<script type="module" src="script.js"></script>
+</body>
+</html>
