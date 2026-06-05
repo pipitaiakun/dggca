@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import { createClient } from '@supabase/supabase-js';
-import { handle } from '@hono/vercel-adapter';
+import { handle } from 'hono/vercel';
 import { env } from 'hono/adapter';
 
 const app = new Hono();
