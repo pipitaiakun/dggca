@@ -877,66 +877,29 @@ function deleteChatFromMenu() {
 async function claimPromoCode() {
     const codeInput = document.getElementById('promo-code-input');
     const code = codeInput.value.trim();
-    const now = new Date();
 
-    let durationDays = 0;
-    let promoName = "";
-
-    if (code === 'PIPIT_UNLIMITED') {
-        durationDays = 30;
-        promoName = "PIPIT_UNLIMITED";
-    } else if (code === 'DGGCAI') {
-        const deadline = new Date('2026-03-25T23:59:59');
-        if (now > deadline) {
-            alert("❌ Kode promo DGGCAI sudah kadaluarsa.");
-            return;
-        }
-        durationDays = 63; // 9 Minggu
-        promoName = "DGGCAI";
-    } else if (code === 'DGGCAIPUBLICK') {
-        durationDays = 60; // 2 Bulan
-        promoName = "DGGCAIPUBLICK";
-    }
-
-    if (durationDays === 0) {
-        alert("❌ Kode promo tidak valid.");
-        return;
-    }
+    if (!code) return alert("Masukkan kode terlebih dahulu!");
 
     try {
-        const { data: profile } = await supabase.from('profiles').select('plan, plan_expiry').eq('id', userSession.user.id).single();
-        
-        // LOGIKA STACKING (Akumulasi)
-        let baseDate = new Date();
-        
-        // Jika user sudah punya paket unlimited dan belum expired, tambahkan dari tanggal expired tersebut
-        if (profile && profile.plan === 'free_unlimited' && profile.plan_expiry) {
-            const existingExpiry = new Date(profile.plan_expiry);
-            if (existingExpiry > now) {
-                baseDate = existingExpiry;
-            }
-        }
+        const res = await fetch(`${window.API_BASE_URL}/redeem`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${userSession?.access_token}`
+            },
+            body: JSON.stringify({ code: code })
+        });
 
-        // Tambahkan durasi kode baru ke baseDate
-        baseDate.setDate(baseDate.getDate() + durationDays);
+        const result = await res.json();
 
-        const { error } = await supabase
-            .from('profiles')
-            .update({ 
-                plan: 'free_unlimited',
-                plan_expiry: baseDate.toISOString() 
-            })
-            .eq('id', userSession.user.id);
+        if (result.error) throw new Error(result.error);
 
-        if (error) throw error;
-
-        const formattedDate = baseDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-        alert(`🎉 Kode ${promoName} berhasil diklaim!\n\nMasa aktif Unlimited kamu telah ditambah ${durationDays} hari.\nSekarang aktif hingga: ${formattedDate}`);
-        
+        const formattedDate = new Date(result.expiry).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        alert(`🎉 Sukses! Akun Anda telah di-upgrade ke ${result.plan.toUpperCase()}.\n\nAktif hingga: ${formattedDate}`);
         codeInput.value = "";
         await loadMemory();
     } catch (err) {
-        alert("Gagal mengklaim kode: " + err.message);
+        alert("❌ Error: " + err.message);
     }
 }
 
@@ -1429,45 +1392,10 @@ window.downloadMyData = async function() {
 };
 
 async function buyPlan(plan) {
-    if (!userSession) {
-        showAuthForm('login');
-        document.getElementById('auth-overlay').style.display = 'flex';
-        return;
-    }
-
     const prices = { 'premium': 30000, 'super': 99000, 'galaxy': 2000000 };
-
-    try {
-        const res = await fetch(`${window.API_BASE_URL}/create-payment`, {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${userSession?.access_token}`
-            },
-            body: JSON.stringify({
-                plan: plan,
-                userId: userSession.user.id,
-                amount: prices[plan]
-            })
-        });
-        
-        const { token } = await res.json();
-
-        if (!token) throw new Error("Gagal membuat sesi pembayaran.");
-
-        // Buka UI Midtrans Snap (Snap is globally available after script load)
-        window.snap.pay(token, {
-            onSuccess: (result) => {
-                alert("Sipp! Pembayaran berhasil. Tunggu sebentar selagi sistem mengupdate akun abang...");
-                setTimeout(() => loadMemory(), 2000);
-            },
-            onPending: (result) => {
-                alert("Selesaikan pembayaran abang di aplikasi DANA/Bank ya!");
-            }, 
-            onError: (err) => { alert("Waduh, pembayaran gagal: " + err.message); }
-        });
-
-    } catch (err) {
-        alert("Kesalahan: " + err.message);
-    }
+    const waNumber = "628139943781"; // Pastikan ini nomor asli abang (awali dengan 62)
+    const message = encodeURIComponent(`Halo Admin, saya ingin membeli Kode Redeem paket ${plan.toUpperCase()} seharga Rp ${prices[plan].toLocaleString('id-ID')}.`);
+    
+    document.getElementById('wa-link').href = `https://wa.me/${waNumber}?text=${message}`;
+    document.getElementById('wa-overlay').style.display = 'flex';
 }

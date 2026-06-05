@@ -854,7 +854,7 @@ textarea#msg {
 
 /* Hapus gaya yang tidak lagi relevan untuk textarea */
 input {
-    /* Ini bisa dihapus atau dipertahankan jika ada lain */
+    box-sizing: border-box; /* Prevent empty ruleset warning and ensure consistent sizing */
 }
 
 button#send-btn {

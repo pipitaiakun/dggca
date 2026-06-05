@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import { createClient } from '@supabase/supabase-js';
-import { handle } from 'hono/vercel';
+import { handle } from '@hono/vercel-adapter';
 import { env } from 'hono/adapter';
 
 const app = new Hono();
@@ -285,72 +285,63 @@ Do not:
     }
 });
 
-app.post("/create-payment", async (c) => {
-    const { MIDTRANS_SERVER_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env(c);
-    const { plan, userId, amount } = await c.req.json();
-    
-    if (!MIDTRANS_SERVER_KEY) {
-        return c.json({ error: "Server Configuration Error: Missing Midtrans Key" }, 500);
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const orderId = `PLAN-${plan.toUpperCase()}-${userId.substring(0,8)}-${Date.now()}`;
-    const authBase64 = btoa(MIDTRANS_SERVER_KEY + ":");
-    
-    try {
-        const response = await fetch("https://app.sandbox.midtrans.com/snap/v1/transactions", {
-            method: "POST",
-            headers: {
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "Authorization": `Basic ${authBase64}`
-            },
-            body: JSON.stringify({
-                transaction_details: { order_id: orderId, gross_amount: amount },
-                customer_details: { email: (await supabase.auth.admin.getUserById(userId)).data.user.email },
-                custom_field1: userId,
-                custom_field2: plan,
-                callbacks: { finish: `${new URL(c.req.url).origin}` }
-            })
-        });
-
-        return c.json(await response.json());
-    } catch (err) {
-        return c.json({ error: err.message }, 500);
-    }
-});
-
-app.post("/payment-webhook", async (c) => {
+app.post("/redeem", async (c) => {
     const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env(c);
-    const body = await c.req.json();
-    const { transaction_status, custom_field1, custom_field2 } = body;
+
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader) return c.json({ error: "No token provided" }, 401);
+
+    const token = authHeader.replace("Bearer ", "");
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: { user } } = await supabase.auth.getUser(token);
 
-    if (transaction_status === 'settlement' || transaction_status === 'capture') {
-        const userId = custom_field1;
-        const planName = custom_field2.toLowerCase();
+    if (!user) return c.json({ error: "Unauthorized" }, 401);
 
-        // Hitung expiry (30 hari dari sekarang)
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + 30);
+    const { code } = await c.req.json();
 
-        const { error } = await supabase
-            .from('profiles')
-            .update({ 
-                plan: planName, 
-                plan_expiry: expiryDate.toISOString(),
-                daily_usage: 0 // Reset pemakaian saat beli paket baru
-            })
-            .eq('id', userId);
+    // 1. Cek validitas kode redeem
+    const { data: redeem, error: redeemError } = await supabase
+        .from("redeem_codes")
+        .select("*")
+        .eq("code", code)
+        .maybeSingle();
 
-        if (error) {
-            console.error("❌ Webhook Error Update DB:", error);
-            return c.json({ error: "Failed to update profile" }, 500);
-        }
-        
-        console.log(`✅ User ${userId} berhasil upgrade ke ${planName}`);
+    if (redeemError || !redeem) {
+        return c.json({ error: "Kode tidak valid atau tidak ditemukan" }, 400);
     }
-    return c.text("OK", 200);
+
+    if (redeem.used) {
+        return c.json({ error: "Kode ini sudah pernah digunakan" }, 400);
+    }
+
+    // 2. Update profil user (Set plan & expiry)
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + (redeem.duration_days || 30));
+
+    const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+            plan: redeem.plan, 
+            plan_expiry: expiryDate.toISOString(),
+            daily_usage: 0 
+        })
+        .eq('id', user.id);
+
+    if (updateError) {
+        return c.json({ error: "Gagal memperbarui profil" }, 500);
+    }
+
+    // 3. Tandai kode sudah terpakai
+    await supabase
+        .from("redeem_codes")
+        .update({
+            used: true,
+            used_by: user.id,
+            used_at: new Date().toISOString()
+        })
+        .eq("code", code);
+
+    return c.json({ success: true, plan: redeem.plan, expiry: expiryDate.toISOString() });
 });
 
 export default handle(app);
