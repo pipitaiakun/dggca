@@ -2,6 +2,7 @@
   "name": "ai-api",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "server.js",
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
