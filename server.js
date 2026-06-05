@@ -7,8 +7,16 @@ import { env } from 'hono/adapter';
 
 const app = new Hono();
 
+// Health check route
+app.get("/", (c) => {
+  return c.json({
+    status: "ok",
+    message: "DGGC AI Backend Running"
+  });
+});
+
 // Middleware
-app.use('*', cors());
+// app.use('*', cors());
 
 app.use('*', async (c, next) => {
     await next();
