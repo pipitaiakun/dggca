@@ -36,7 +36,7 @@ app.get("/config.js", (c) => {
 });
 
 // Middleware
-// app.use('*', cors());
+app.use('*', cors());
 
 app.use('*', async (c, next) => {
     await next();
@@ -372,7 +372,4 @@ app.post("/redeem", async (c) => {
     return c.json({ success: true, plan: redeem.plan, expiry: expiryDate.toISOString() });
 });
 
-const handler = handle(app);
-export default async (req, res) => {
-    await handler(req, res);
-};
+export default handle(app);
