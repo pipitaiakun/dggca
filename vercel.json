@@ -7,10 +7,11 @@
   },
   "cleanUrls": true,
   "rewrites": [
-    {
-      "source": "/(chat|redeem|config.js|api/.*)",
-      "destination": "/server.js"
-    },
+    { "source": "/chat", "destination": "/server.js" },
+    { "source": "/redeem", "destination": "/server.js" },
+    { "source": "/config.js", "destination": "/server.js" },
+    { "source": "/api/health", "destination": "/server.js" },
+    { "source": "/", "destination": "/public/index.html" },
     {
       "source": "/(.*)",
       "destination": "/public/$1"
