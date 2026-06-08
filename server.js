@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import { createClient } from '@supabase/supabase-js';
-import { handle } from 'hono/vercel';
+import { handle } from '@hono/vercel-adapter';
 import { env } from 'hono/adapter';
 
 const app = new Hono();
@@ -13,6 +13,26 @@ app.get("/", (c) => {
     status: "ok",
     message: "DGGC AI Backend Running"
   });
+});
+
+app.get("/api/health", (c) => {
+  return c.json({
+    status: "ok",
+    message: "DGGC AI Backend Running"
+  });
+});
+
+app.get("/config.js", (c) => {
+    const { API_BASE_URL, SUPABASE_ANON_KEY, MIDTRANS_CLIENT_KEY } = env(c);
+
+    c.header("Content-Type", "application/javascript; charset=utf-8");
+    c.header("Cache-Control", "no-store, max-age=0");
+
+    return c.body([
+        `window.API_BASE_URL = ${JSON.stringify(API_BASE_URL || "")};`,
+        `window.SUPABASE_ANON_KEY = ${JSON.stringify(SUPABASE_ANON_KEY || "")};`,
+        `window.MIDTRANS_CLIENT_KEY = ${JSON.stringify(MIDTRANS_CLIENT_KEY || "")};`
+    ].join("\n"));
 });
 
 // Middleware

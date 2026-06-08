@@ -6,6 +6,7 @@
   "main": "server.js",
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
+    "@hono/vercel-adapter": "^0.4.2",
     "hono": "^4.12.23"
   },
   "scripts": {

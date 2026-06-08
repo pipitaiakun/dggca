@@ -4,12 +4,40 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
+      "src": "/chat",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/redeem",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/config.js",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/api/health",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/(.*\\.(?:css|js|png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|map))",
+      "dest": "/public/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/public/index.html"
+    },
+    {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "/public/index.html"
     }
   ]
 }

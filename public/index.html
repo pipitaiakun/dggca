@@ -7,13 +7,12 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://*.supabase.co https://openrouter.ai https://app.sandbox.midtrans.com https://*.vercel.app https://www.google.com; connect-src 'self' https://*.supabase.co https://api.tavily.com https://openrouter.ai https://app.sandbox.midtrans.com https://*.vercel.app https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; frame-src 'self' https://app.sandbox.midtrans.com;">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Vercel akan mengganti placeholder ini dengan Environment Variables -->
     <script>
-        window.API_BASE_URL = "API_BASE_URL_PLACEHOLDER"; // Contoh: https://dggc-ai-api.username.workers.dev
-        window.MIDTRANS_CLIENT_KEY = "MIDTRANS_CLIENT_KEY_PLACEHOLDER"; // Contoh: SB-Mid-client-XXXXX
-        window.SUPABASE_ANON_KEY = "SUPABASE_ANON_KEY_PLACEHOLDER";
+        window.API_BASE_URL = "";
+        window.MIDTRANS_CLIENT_KEY = "";
+        window.SUPABASE_ANON_KEY = "";
     </script>
-    <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="MIDTRANS_CLIENT_KEY_PLACEHOLDER"></script>
+    <script src="/config.js"></script>
 </head>
 <body>
 
@@ -343,30 +342,22 @@
     </div>
 </div>
 
-<!-- Modal Pembayaran (Statis/Simulasi) -->
-<div id="payment-overlay" class="auth-overlay" style="display: none; z-index: 5000; background: rgba(0,0,0,0.8);">
-    <div class="auth-card" style="max-width: 400px; text-align: center; border: 1px solid var(--border);">
-        <h3 id="payment-title">💳 Konfirmasi Pembayaran</h3>
-        <p style="font-size: 13px; opacity: 0.7; margin-bottom: 20px;">Silakan selesaikan pembayaran untuk mengaktifkan paket.</p>
-        
-        <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align: left; border: 1px solid var(--border);">
-            <p style="margin: 5px 0;">Paket: <b id="pay-plan-name" style="color: #3b82f6;">-</b></p>
-            <p style="margin: 5px 0;">Total Bayar: <b id="pay-amount" style="color: #16a34a;">-</b></p>
-            <hr style="margin: 10px 0; opacity: 0.1;">
-            <p style="font-size: 12px; margin: 3px 0;">🏦 <b>Transfer Bank (BCA)</b>: 123-456-7890</p>
-            <p style="font-size: 12px; margin: 3px 0;">👤 <b>A/N</b>: DGGC AI PRODUCTION</p>
+<!-- Modal WhatsApp Order -->
+<div id="wa-overlay" class="auth-overlay" style="display: none; z-index: 5000; background: rgba(0,0,0,0.8);">
+    <div class="auth-card" style="max-width: 350px; text-align: center; border: 1px solid var(--border);">
+        <div class="wa-header" style="padding: 10px 0;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WA" style="width: 50px; margin-bottom: 10px;">
+            <h2 style="color: #25D366; margin: 0; font-size: 22px;">WhatsApp</h2>
+            <p style="font-size: 14px; opacity: 0.7; margin-top: 5px;">Hubungi Admin untuk beli kode</p>
         </div>
-
-        <div style="margin-bottom: 20px;">
-            <div style="width: 160px; height: 160px; background: white; margin: 0 auto; padding: 10px; border-radius: 10px;">
-                <!-- Placeholder QRIS -->
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=DGGC-AI-PAYMENT" alt="QRIS" style="width: 140px; height: 140px;">
-            </div>
-            <small style="display: block; margin-top: 10px; opacity: 0.5;">Scan QRIS untuk pembayaran instan</small>
+        <div style="background: var(--bg); padding: 20px; border-radius: 15px; margin: 20px 0; border: 1px solid var(--border);">
+            <p style="font-size: 11px; opacity: 0.5; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">Nomor Admin</p>
+            <h3 style="font-size: 18px; color: var(--text);">+62 813-9943-781</h3>
         </div>
-
-        <button id="pay-confirm-btn" class="auth-submit-btn" onclick="confirmPayment()">Saya Sudah Bayar</button>
-        <button class="export-btn" style="margin-top: 10px; border: none; background: transparent;" onclick="document.getElementById('payment-overlay').style.display='none'">Batal</button>
+        <a id="wa-link" href="#" target="_blank" class="auth-submit-btn" style="background: #25D366; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700;">
+            Chat Admin Sekarang
+        </a>
+        <button class="export-btn" style="margin-top: 15px; border: none; background: transparent;" onclick="document.getElementById('wa-overlay').style.display='none'">Batal</button>
     </div>
 </div>
 
