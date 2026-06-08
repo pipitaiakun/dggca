@@ -153,7 +153,7 @@ app.post("/chat", async (c) => {
     // 3. Logika Pencarian Web Otomatis
     let searchResults = "";
     const searchKeywords = ["cari", "search", "temukan", "link", "video", "youtube", "berita", "siapa", "apa itu", "bagaimana cara", "kapan", "harga", "tutorial", "resep", "cara membuat"];
-    if (searchKeywords.some(kw => message.toLowerCase().includes(kw))) {
+    if (message && searchKeywords.some(kw => message.toLowerCase().includes(kw))) {
         searchResults = await performWebSearch(message, TAVILY_API_KEY);
     }
 
