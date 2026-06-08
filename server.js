@@ -372,4 +372,7 @@ app.post("/redeem", async (c) => {
     return c.json({ success: true, plan: redeem.plan, expiry: expiryDate.toISOString() });
 });
 
-export default handle(app);
+const handler = handle(app);
+export default async (req, res) => {
+    await handler(req, res);
+};
